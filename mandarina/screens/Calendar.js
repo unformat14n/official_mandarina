@@ -70,7 +70,7 @@ const Calendar = () => {
                     </Text>
                 );
             }
-            return <View style={styles.monthHdr}>{hdrs}</View>;
+            return <View style={styles.calendarHdr}>{hdrs}</View>;
         } else if (view === "week") {
             const hdrs = [];
             const date = new Date(curDate);
@@ -85,11 +85,46 @@ const Calendar = () => {
                 hdrs.push(
                     <View key={`${weekDays[i]}${date.getDate()}`}>
                         <Text style={styles.weekday}>{weekDays[i]}</Text>
-                        <Text style={isToday ? styles.weekdayToday : styles.weekday}>{date.getDate()}</Text>
+                        <Text
+                            style={
+                                isToday ? styles.weekdayToday : styles.weekday
+                            }>
+                            {date.getDate()}
+                        </Text>
                     </View>
                 );
             }
-            return <View style={styles.monthHdr}>{hdrs}</View>;
+            return <View style={styles.calendarHdr}>{hdrs}</View>;
+        } else {
+            const date = new Date(curDate);
+            return (
+                <View style={styles.calendarHdr}>
+                    <Text
+                        style={{
+                            fontSize: 24,
+                            fontWeight: "bold",
+                            marginLeft: 15,
+                            color: colors[theme].fg,
+                        }}>
+                        {date.toLocaleDateString("default", {
+                            weekday: "long",
+                        })}
+                    </Text>
+                    <Text
+                        style={{
+                            fontSize: 24,
+                            fontWeight: "bold",
+                            color: colors[theme].bg,
+                            backgroundColor: colors[theme].secondary,
+                            padding: 5,
+                            paddingInline: 8,
+                            marginInline: 10,
+                            borderRadius: 999,
+                        }}>
+                        {date.getDate()}
+                    </Text>
+                </View>
+            );
         }
     };
 
@@ -99,63 +134,113 @@ const Calendar = () => {
             curDate.getMonth() + 1,
             0
         ).getDate();
+
         const firstDayOfMonth = new Date(
             curDate.getFullYear(),
             curDate.getMonth(),
             1
-        ).getDay();
-        const days = [];
-        for (let i = 0; i < firstDayOfMonth; i++) {
-            days.push(<View style={styles.day} key={`empty${i}`}></View>);
+        ).getDay(); // Sunday = 0, Monday = 1...
+
+        const totalSlots = firstDayOfMonth + daysInMonth;
+        const weeks = [];
+        let currentWeek = [];
+
+        for (let i = 0; i < totalSlots; i++) {
+            if (i < firstDayOfMonth) {
+                currentWeek.push(
+                    <View style={styles.day} key={`empty-${i}`} />
+                );
+            } else {
+                const day = i - firstDayOfMonth + 1;
+                const isToday =
+                    day === new Date().getDate() &&
+                    curDate.getMonth() === new Date().getMonth() &&
+                    curDate.getFullYear() === new Date().getFullYear();
+
+                currentWeek.push(
+                    <View
+                        style={isToday ? styles.today : styles.day}
+                        key={`day-${day}`}>
+                        <Text style={isToday ? styles.todayTxt : styles.dayTxt}>
+                            {day}
+                        </Text>
+                    </View>
+                );
+            }
+
+            if (currentWeek.length === 7 || i === totalSlots - 1) {
+                weeks.push(
+                    <View
+                        key={`week-${weeks.length}`}
+                        style={[styles.weekRow, { width: screenWidth }]}>
+                        {currentWeek}
+                    </View>
+                );
+                currentWeek = [];
+            }
         }
-        for (let i = 1; i <= daysInMonth; i++) {
-            const isToday =
-                curDate.getDate() == i &&
-                curDate.getMonth() == new Date().getMonth() &&
-                curDate.getFullYear() == new Date().getFullYear();
-            days.push(
-                <View
-                    style={isToday ? styles.today : styles.day}
-                    key={`day${i}`}>
-                    <Text style={isToday ? styles.todayTxt : styles.dayTxt}>
-                        {i}
-                    </Text>
-                </View>
-            );
-        }
-        return <View style={styles.calendarContainer}>{days}</View>;
+
+        return <View style={styles.calendarContainer}>{weeks}</View>;
     };
 
     const renderWeek = () => {
-        const days = [];
         const date = new Date(curDate);
         const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
         const diff = date.getDate() - dayOfWeek; // Adjust to get to Sunday
         const container = [];
 
-        for (let i = 0; i < 7; i++) {
-            date.setDate(diff + i);
+        for (let hour = 0; hour < 24; hour++) {
             let row = [];
-            
-            for (let hour=0; hour<24; hour++) {
+            const formattedHour =
+                hour === 0
+                    ? "12:00 AM"
+                    : hour < 12
+                    ? `${hour}:00 AM`
+                    : hour === 12
+                    ? "12:00 PM"
+                    : `${hour - 12}:00 PM`;
+            for (let i = 0; i < 7; i++) {
+                date.setDate(diff + i);
                 row.push(
                     <View
                         style={styles.weekdayhour}
-                        key={`day${date.getDate()}-${hour}`}>
-                        <Text style={styles.dayTxt}>{hour}:00</Text>
-                    </View>
-                )
+                        key={`day${date.getDate()}-${hour}`}></View>
+                );
             }
 
             container.push(
-                <View style={styles.weekdayContainer} key={`week${i}`}>
-                    {row}
+                <View style={styles.weekdayContainer} key={`week${hour}`}>
+                    <Text style={styles.hourTxt}>{formattedHour}</Text>
+                    <View style={styles.weekhourContainer}>{row}</View>
                 </View>
             );
         }
 
         return <View style={styles.calendarContainer}>{container}</View>;
-    }
+    };
+
+    const renderDay = () => {
+        const date = new Date(curDate);
+        const container = [];
+        for (let hour = 0; hour < 24; hour++) {
+            const formattedHour =
+                hour === 0
+                    ? "12:00 AM"
+                    : hour < 12
+                    ? `${hour}:00 AM`
+                    : hour === 12
+                    ? "12:00 PM"
+                    : `${hour - 12}:00 PM`;
+            container.push(
+                <View style={styles.weekdayContainer} key={`week${hour}`}>
+                    <Text style={styles.hourTxt}>{formattedHour}</Text>
+                    <View style={styles.dayContainer}></View>
+                </View>
+            );
+        }
+
+        return <View style={styles.calendarContainer}>{container}</View>;
+    };
 
     return (
         <View style={styles.container}>
@@ -234,7 +319,11 @@ const Calendar = () => {
                 </TouchableOpacity>
             </View>
             {renderHeader()}
-            <ScrollView style={styles.calendar}>{renderMonth()}</ScrollView>
+            <ScrollView style={styles.calendar}>
+                {view == "month" && renderMonth()}
+                {view == "week" && renderWeek()}
+                {view == "day" && renderDay()}
+            </ScrollView>
         </View>
     );
 };
@@ -261,12 +350,12 @@ const getStyles = (theme) =>
         calendar: {
             flexDirection: "column",
             backgroundColor: colors[theme].bg,
-            height: screenHeight - 100,
+            height: screenHeight * 0.81,
             width: screenWidth,
         },
-        monthHdr: {
+        calendarHdr: {
             flexDirection: "row",
-            justifyContent: "space-around",
+            alignItems: "center",
             width: screenWidth,
             backgroundColor: colors[theme].bg,
             boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
@@ -290,11 +379,16 @@ const getStyles = (theme) =>
             borderRadius: 5,
             color: colors[theme].bg,
         },
+
         calendarContainer: {
-            flexDirection: "row",
-            flexWrap: "wrap",
-            height: "100%",
+            flexDirection: "column",
             width: screenWidth,
+            backgroundColor: colors[theme].bg,
+        },
+        weekRow: {
+            flexDirection: "row",
+            width: screenWidth,
+            height: rowHeight,
             backgroundColor: colors[theme].bg,
         },
         day: {
@@ -330,6 +424,49 @@ const getStyles = (theme) =>
         dayTxt: {
             textAlign: "center",
             color: colors[theme].fg,
+        },
+
+        weekdayContainer: {
+            flexDirection: "column",
+            justifyContent: "flex-start",
+            alignItems: "flex-start",
+            width: screenWidth,
+            backgroundColor: colors[theme].bg,
+            marginBlock: 5,
+        },
+        weekdayhour: {
+            maxWidth: daySize,
+            width: daySize,
+            minHeight: 50,
+            justifyContent: "flex-start",
+            backgroundColor: colors[theme].bg,
+        },
+        weekhourContainer: {
+            flexDirection: "row",
+            justifyContent: "flex-start",
+            alignItems: "flex-start",
+            width: screenWidth,
+            backgroundColor: colors[theme].bg,
+            borderBottomWidth: 1,
+            borderBottomColor: colors[theme].border,
+        },
+        hourTxt: {
+            fontSize: 16,
+            textAlign: "center",
+            marginLeft: 10,
+            color: colors[theme].fgOpaque,
+        },
+
+        dayContainer: {
+            flexDirection: "row",
+            justifyContent: "flex-start",
+            flexWrap: "wrap",
+            minHeight: 25,
+            alignItems: "flex-start",
+            width: screenWidth,
+            backgroundColor: colors[theme].bg,
+            borderBottomWidth: 1,
+            borderBottomColor: colors[theme].border,
         },
 
         button: {
