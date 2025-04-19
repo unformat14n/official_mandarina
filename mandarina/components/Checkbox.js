@@ -1,11 +1,11 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import colors from "../styles/colors";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme } from "../contexts/ThemeContext";
 
 function Checkbox({ labelTxt, checked, onToggle }) {
-    const { theme } = useTheme();
-    const styles = getStyles(theme, "light");
+    const { theme, palette } = useTheme();
+    const styles = getStyles(theme, palette);
 
     return (
         <TouchableOpacity style={styles.checkboxContainer} onPress={onToggle}>
@@ -27,7 +27,7 @@ const getStyles = (theme, palette) =>
             width: 15,
             height: 15,
             borderWidth: 1,
-            borderColor: colors[theme].checkboxBdr,
+            borderColor: colors[theme].fgOpaque,
             borderRadius: 50,
             marginRight: 5,
             marginBlock: 10,
@@ -54,7 +54,7 @@ const getStyles = (theme, palette) =>
             borderRadius: 50,
         },
         labelTxt: {
-            color: colors[theme].text,
+            color: colors[theme].fg,
         },
     });
 

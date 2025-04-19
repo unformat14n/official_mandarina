@@ -8,13 +8,16 @@ import {
     StyleSheet,
 } from "react-native";
 import { db, loginUser, registerUser } from "../services/database";
+import { useUser } from "../contexts/UserContext";
 import colors from "../styles/colors";
 
 const AuthScreen = ({ navigation }) => {
     const [isLogin, setIsLogin] = useState(true);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const { userId, setUserId} = useUser();
     const styles = getStyles("light");
+
 
     const handleAuth = async () => {
         if (!username || !password) {
@@ -28,6 +31,7 @@ const AuthScreen = ({ navigation }) => {
 
                 if (result) {
                     console.log("User logged in:", result);
+                    setUserId(result.id);
                     navigation.navigate("Main");
                 } else {
                     Alert.alert("Error", "Invalid credentials");

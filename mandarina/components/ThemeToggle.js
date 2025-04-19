@@ -5,7 +5,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import colors from "../styles/colors";
 
 const ThemeToggle = () => {
-    const { theme, toggleTheme } = useTheme();
+    const { theme, toggleTheme, palette } = useTheme();
 
     return (
         <View
@@ -14,8 +14,8 @@ const ThemeToggle = () => {
             <Switch
                 value={theme === "dark"}
                 onValueChange={toggleTheme}
-                thumbColor={colors[theme].primary}
-                trackColor={{ false: "#767577", true: colors[theme].primary }}
+                thumbColor={colors[palette].primary}
+                trackColor={{ false: "#767577", true: colors[palette].primary }}
             />
         </View>
     );

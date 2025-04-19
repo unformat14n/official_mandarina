@@ -13,6 +13,10 @@ import {
 import colors from "../styles/colors";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useTheme } from "../contexts/ThemeContext";
+import { useUser } from "../contexts/UserContext";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { createTask } from "../services/database";
+import Task from "../components/Task";
 
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
@@ -22,9 +26,56 @@ const rowHeight = (screenHeight * 0.9) / 5;
 const Calendar = () => {
     const [curDate, setCurDate] = useState(new Date());
     const [view, setView] = useState("month");
-    const { theme } = useTheme();
 
-    const styles = getStyles(theme);
+    const { theme, palette } = useTheme();
+    const styles = getStyles(theme, palette);
+
+    const { userId } = useUser();
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [taskTitle, setTaskTitle] = useState("");
+    const [taskDescription, setTaskDescription] = useState("");
+    const [taskDueDate, setTaskDueDate] = useState(new Date());
+    const [taskPriority, setTaskPriority] = useState("Medium");
+    const [taskHour, setTaskHour] = useState(0);
+    const [taskMinute, setTaskMinute] = useState(0);
+
+    const [mode, setMode] = useState("date");
+    const [show, setShow] = useState(false);
+
+    const onChange = (event, selectedDate) => {
+        const currentDate = selectedDate || taskDueDate;
+
+        if (mode === "time") {
+            // Update hour and minute states
+            setTaskHour(currentDate.getHours());
+            setTaskMinute(currentDate.getMinutes());
+        } else {
+            // For date changes, update the due date
+            setTaskDueDate(currentDate);
+            1;
+        }
+        setShow(false);
+    };
+
+    const showMode = (currentMode) => {
+        setShow(true);
+        setMode(currentMode);
+    };
+
+    const showDatepicker = () => {
+        showMode("date");
+    };
+
+    const showTimepicker = () => {
+        showMode("time");
+    };
+
+    const formatTimeForDisplay = (hours, minutes) => {
+        const period = hours >= 12 ? "PM" : "AM";
+        const displayHours = hours % 12 || 12; // Convert 0 to 12 for 12AM
+        return `${displayHours}:${String(minutes).padStart(2, "0")} ${period}`;
+    };
 
     const navigate = (dir) => {
         switch (view) {
@@ -47,6 +98,10 @@ const Calendar = () => {
                 );
                 break;
         }
+    };
+
+    const setToday = () => {
+        setCurDate(new Date());
     };
 
     const getWeekDays = (locale = "en-US") => {
@@ -204,7 +259,7 @@ const Calendar = () => {
                 row.push(
                     <View
                         style={styles.weekdayhour}
-                        key={`day${date.getDate()}-${hour}`}></View>
+                        key={`day${date.getDate()}-${hour}-${date.getDay()}`}></View>
                 );
             }
 
@@ -242,6 +297,43 @@ const Calendar = () => {
         return <View style={styles.calendarContainer}>{container}</View>;
     };
 
+    const handleAddTask = async () => {
+        if (!taskTitle.trim()) {
+            Alert.alert("Error", "Task title is required");
+            return;
+        }
+        try {
+            // Combine date and time into a single ISO string
+            const dueDate = new Date(
+                taskDueDate.getFullYear(),
+                taskDueDate.getMonth(),
+                taskDueDate.getDate(),
+                taskHour,
+                taskMinute
+            );
+            await createTask(
+                userId,
+                taskTitle,
+                taskDescription,
+                dueDate.toISOString(),
+                taskPriority
+            );
+            setModalVisible(false);
+            setTaskTitle("");
+            setTaskDescription("");
+            setTaskDueDate(new Date());
+            setTaskPriority("Medium");
+            setTaskHour(0);
+            setTaskMinute(0);
+            // Optionally, trigger a refresh of tasks here
+            // e.g., fetchTasks();
+            // Alert.alert("Success", "Task created!");
+        } catch (error) {
+            Alert.alert("Error", "Failed to create task");
+            console.error(error);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -273,7 +365,7 @@ const Calendar = () => {
             <View style={styles.header}>
                 <TouchableOpacity
                     style={[styles.button, { width: screenWidth / 5 }]}
-                    onPress={() => setView("month")}>
+                    onPress={setToday}>
                     <Text style={styles.buttonTxt}>Today</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setView("day")}>
@@ -282,7 +374,7 @@ const Calendar = () => {
                         size={24}
                         color={
                             view === "day"
-                                ? colors[theme].primary
+                                ? colors[palette].primary
                                 : colors[theme].fg
                         }
                     />
@@ -294,7 +386,7 @@ const Calendar = () => {
                         size={24}
                         color={
                             view === "week"
-                                ? colors[theme].primary
+                                ? colors[palette].primary
                                 : colors[theme].fg
                         }
                     />
@@ -306,7 +398,7 @@ const Calendar = () => {
                         size={24}
                         color={
                             view === "month"
-                                ? colors[theme].primary
+                                ? colors[palette].primary
                                 : colors[theme].fg
                         }
                     />
@@ -314,7 +406,7 @@ const Calendar = () => {
 
                 <TouchableOpacity
                     style={[styles.button, { width: screenWidth / 5 }]}
-                    onPress={() => setView("month")}>
+                    onPress={() => setModalVisible(true)}>
                     <Text style={styles.buttonTxt}>Add Event</Text>
                 </TouchableOpacity>
             </View>
@@ -324,11 +416,109 @@ const Calendar = () => {
                 {view == "week" && renderWeek()}
                 {view == "day" && renderDay()}
             </ScrollView>
+
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => {
+                    setModalVisible(!modalVisible);
+                }}>
+                <View style={styles.centeredView}>
+                    <View style={styles.modalOverlay} />
+                    <View style={styles.modalView}>
+                        <Text style={styles.modalHeader}>
+                            Hang in there, we're creating your task ᕙ(`‿´)ᕗ
+                        </Text>
+
+                        <Text style={styles.label}>Title</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Task title"
+                            onChangeText={setTaskTitle}
+                            value={taskTitle}
+                        />
+
+                        <Text style={styles.label}>Description</Text>
+                        <TextInput
+                            style={[styles.input, styles.multilineInput]}
+                            placeholder="Task description"
+                            onChangeText={setTaskDescription}
+                            value={taskDescription}
+                            multiline
+                        />
+
+                        <Text style={styles.label}>Date</Text>
+                        <TouchableOpacity
+                            style={styles.input}
+                            onPress={showDatepicker}>
+                            <Text style={styles.datePickerText}>
+                                {taskDueDate.toLocaleDateString("default", {
+                                    month: "long",
+                                    day: "numeric",
+                                    year: "numeric",
+                                })}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <Text style={styles.label}>Time</Text>
+                        <TouchableOpacity
+                            style={styles.input}
+                            onPress={showTimepicker}>
+                            <Text style={styles.timeDisplay}>
+                                {formatTimeForDisplay(taskHour, taskMinute)}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {show && (
+                            <DateTimePicker
+                                testID="dateTimePicker"
+                                value={taskDueDate}
+                                mode={mode}
+                                is24Hour={false}
+                                onChange={onChange}
+                            />
+                        )}
+
+                        <Text style={styles.label}>Priority</Text>
+                        <View style={styles.priorityContainer}>
+                            {["Low", "Medium", "High"].map((priority) => (
+                                <TouchableOpacity
+                                    key={priority}
+                                    style={[
+                                        styles.priorityButton,
+                                        taskPriority === priority &&
+                                            styles.selectedPriority,
+                                    ]}
+                                    onPress={() => setTaskPriority(priority)}>
+                                    <Text style={styles.priorityText}>
+                                        {priority}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <View style={styles.buttonContainer}>
+                            <TouchableOpacity
+                                style={[styles.button, styles.cancelButton]}
+                                onPress={() => setModalVisible(false)}>
+                                <Text style={styles.buttonText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.button, styles.saveButton]}
+                                onPress={handleAddTask}>
+                                <Text style={styles.buttonText}>Save</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
 
-const getStyles = (theme) =>
+const getStyles = (theme, palette) =>
     StyleSheet.create({
         container: {
             marginTop: 20,
@@ -345,12 +535,12 @@ const getStyles = (theme) =>
         headerText: {
             fontSize: 32,
             fontWeight: "bold",
-            color: colors[theme].secondary,
+            color: colors[palette].secondary,
         },
         calendar: {
             flexDirection: "column",
             backgroundColor: colors[theme].bg,
-            height: screenHeight * 0.81,
+            height: screenHeight * 0.82,
             width: screenWidth,
         },
         calendarHdr: {
@@ -375,7 +565,7 @@ const getStyles = (theme) =>
             textAlign: "center",
             maxWidth: daySize,
             width: daySize,
-            backgroundColor: colors[theme].primary,
+            backgroundColor: colors[palette].primary,
             borderRadius: 5,
             color: colors[theme].bg,
         },
@@ -384,6 +574,7 @@ const getStyles = (theme) =>
             flexDirection: "column",
             width: screenWidth,
             backgroundColor: colors[theme].bg,
+            marginBottom: 20,
         },
         weekRow: {
             flexDirection: "row",
@@ -408,7 +599,7 @@ const getStyles = (theme) =>
             justifyContent: "flex-start",
             alignItems: "center",
             borderWidth: 2,
-            borderColor: colors[theme].primary,
+            borderColor: colors[palette].primary,
             borderRadius: 5,
             backgroundColor: colors[theme].bg,
         },
@@ -416,7 +607,7 @@ const getStyles = (theme) =>
             fontWeight: "bold",
             textAlign: "center",
             color: colors[theme].bg,
-            backgroundColor: colors[theme].primary,
+            backgroundColor: colors[palette].primary,
             padding: 5,
             margin: 5,
             borderRadius: 5,
@@ -470,7 +661,7 @@ const getStyles = (theme) =>
         },
 
         button: {
-            backgroundColor: colors[theme].primary,
+            backgroundColor: colors[palette].primary,
             padding: 5,
             justifyContent: "center",
             alignItems: "center",
@@ -481,6 +672,110 @@ const getStyles = (theme) =>
             color: colors[theme].bg,
             fontSize: 16,
             fontWeight: "bold",
+        },
+
+        centeredView: {
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+        },
+        modalOverlay: {
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+        },
+        modalView: {
+            width: "90%",
+            backgroundColor: colors[theme].bg,
+            borderRadius: 10,
+            padding: 20,
+            shadowColor: "#000",
+            shadowOffset: {
+                width: 0,
+                height: 2,
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+            elevation: 5,
+        },
+        modalHeader: {
+            fontSize: 20,
+            fontWeight: "bold",
+            marginBottom: 15,
+            color: colors[palette].secondary,
+            textAlign: "center",
+        },
+        label: {
+            marginTop: 10,
+            marginBottom: 5,
+            color: colors[theme].fg,
+        },
+        input: {
+            borderWidth: 1,
+            borderColor: colors[theme].border,
+            borderRadius: 5,
+            padding: 10,
+            marginBottom: 10,
+            color: colors[theme].fg,
+        },
+        multilineInput: {
+            minHeight: 80,
+            textAlignVertical: "top",
+            color: colors[theme].fg,
+        },
+        timeContainer: {
+            flexDirection: "row",
+            justifyContent: "space-between",
+        },
+        timeInputContainer: {
+            width: "48%",
+        },
+        timeInput: {
+            borderWidth: 1,
+            borderColor: colors[theme].border,
+            borderRadius: 5,
+            padding: 10,
+            color: colors[theme].fg,
+        },
+        priorityContainer: {
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginBottom: 15,
+        },
+        priorityButton: {
+            padding: 10,
+            borderRadius: 5,
+            borderWidth: 1,
+            borderColor: colors[theme].border,
+            width: "30%",
+            alignItems: "center",
+        },
+        selectedPriority: {
+            backgroundColor: colors[palette].primary,
+            borderColor: colors[palette].primary,
+            color: colors[theme].bg,
+        },
+        priorityText: {
+            color: colors[theme].text,
+        },
+        buttonContainer: {
+            flexDirection: "row",
+            justifyContent: "space-between",
+        },
+        cancelButton: {
+            backgroundColor: colors[palette].altPrimary,
+        },
+        saveButton: {
+            backgroundColor: colors[palette].primary,
+        },
+        buttonText: {
+            color: colors[theme].bg,
+            fontWeight: "bold",
+            fontSize: 16,
+            padding: 10,
         },
     });
 

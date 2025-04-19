@@ -7,6 +7,7 @@ import { View, Text } from "react-native";
 import { initializeDB } from "./services/database";
 import MainScreen from "./screens/MainScreen";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import UserProvider from "./contexts/UserContext";
 
 const Stack = createStackNavigator();
 
@@ -17,20 +18,22 @@ export default function App() {
 
     return (
         <ThemeProvider>
-            <NavigationContainer>
-                <Stack.Navigator initialRouteName="Auth">
-                    <Stack.Screen
-                        name="Auth"
-                        component={AuthScreen}
-                        options={{ title: "Authentication" }}
-                    />
-                    <Stack.Screen
-                        name="Main"
-                        component={MainScreen}
-                        options={{ headerShown: false }}
-                    />
-                </Stack.Navigator>
-            </NavigationContainer>
+            <UserProvider>
+                <NavigationContainer>
+                    <Stack.Navigator initialRouteName="Auth">
+                        <Stack.Screen
+                            name="Auth"
+                            component={AuthScreen}
+                            options={{ title: "Authentication" }}
+                        />
+                        <Stack.Screen
+                            name="Main"
+                            component={MainScreen}
+                            options={{ headerShown: false }}
+                        />
+                    </Stack.Navigator>
+                </NavigationContainer>
+            </UserProvider>
         </ThemeProvider>
     );
 }

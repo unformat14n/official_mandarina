@@ -1,4 +1,5 @@
 import React from "react";
+import { Dimensions } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 
@@ -13,9 +14,10 @@ import { useTheme } from "../contexts/ThemeContext";
 import colors from "../styles/colors";
 
 const Tab = createBottomTabNavigator();
+const screenHeight = Dimensions.get("window").height;
 
 const MainScreen = () => {
-    const { theme } = useTheme();
+    const { theme, palette } = useTheme();
     // const styles = getStyles(theme); 
 
     return (
@@ -46,11 +48,12 @@ const MainScreen = () => {
                         <MaterialIcons name={iconName} size={size} color={color} />
                     );
                 },
-                tabBarActiveTintColor: "#f57c00",
+                tabBarActiveTintColor: colors[palette].primary,
                 tabBarInactiveTintColor: "gray",
                 headerShown: false,
                 tabBarStyle: {
                     backgroundColor: colors[theme].bg,
+                    height: screenHeight * 0.05,
                     borderTopColor: colors[theme].border,
                 },
             })}>
