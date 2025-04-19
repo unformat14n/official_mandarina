@@ -8,7 +8,8 @@ const ThemeContext = createContext();
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }) => {
-    const [theme, setTheme] = useState("light")
+    const [theme, setTheme] = useState("light");
+    const [palette, setPalette] = useState("mandarina");
 
     // Load saved theme preference
     useEffect(() => {
@@ -23,6 +24,12 @@ export const ThemeProvider = ({ children }) => {
                     // If no preference saved, use system preference
                     const systemColorScheme = Appearance.getColorScheme();
                     setTheme(systemColorScheme);
+                }
+
+                // Load saved palette preference
+                const savedPalette = await AsyncStorage.getItem("palette");
+                if (savedPalette !== null) {
+                    setPalette(savedPalette);
                 }
             } catch (error) {
                 console.error("Error loading theme preference:", error);
@@ -47,7 +54,7 @@ export const ThemeProvider = ({ children }) => {
     };
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+        <ThemeContext.Provider value={{ theme, toggleTheme, palette, setPalette }}>
             {children}
         </ThemeContext.Provider>
     );
