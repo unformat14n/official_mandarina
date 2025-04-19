@@ -3,7 +3,6 @@ import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import AuthScreen from "./screens/AuthScreen";
-import { View, Text } from "react-native";
 import { initializeDB } from "./services/database";
 import MainScreen from "./screens/MainScreen";
 import { ThemeProvider } from "./contexts/ThemeContext";

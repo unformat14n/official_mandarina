@@ -15,7 +15,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useUser } from "../contexts/UserContext";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { createTask } from "../services/database";
+import { createTask, getTasks } from "../services/database";
 import Task from "../components/Task";
 
 const screenWidth = Dimensions.get("window").width;
@@ -26,6 +26,7 @@ const rowHeight = (screenHeight * 0.9) / 5;
 const Calendar = () => {
     const [curDate, setCurDate] = useState(new Date());
     const [view, setView] = useState("month");
+    const [tasks, setTasks] = useState([]);
 
     const { theme, palette } = useTheme();
     const styles = getStyles(theme, palette);
@@ -76,6 +77,19 @@ const Calendar = () => {
         const displayHours = hours % 12 || 12; // Convert 0 to 12 for 12AM
         return `${displayHours}:${String(minutes).padStart(2, "0")} ${period}`;
     };
+
+    const fetchTasks = async () => {
+        try {
+            const tasks = await getTasks(userId);
+            setTasks(tasks);
+        } catch (error) {
+            console.error("Error fetching tasks:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchTasks();
+    }, []);
 
     const navigate = (dir) => {
         switch (view) {
@@ -212,6 +226,26 @@ const Calendar = () => {
                     curDate.getMonth() === new Date().getMonth() &&
                     curDate.getFullYear() === new Date().getFullYear();
 
+                const tasksForDay = tasks.filter((task) => {
+                    const taskDate = new Date(task.date);
+
+                    return (
+                        taskDate.getDate() === day &&
+                        taskDate.getMonth() === curDate.getMonth() &&
+                        taskDate.getFullYear() === curDate.getFullYear()
+                    );
+                });
+
+                const taskComps = tasksForDay.map((task) => (
+                    <Task
+                        key={task.id}
+                        title={task.title}
+                        description={task.description}
+                        date={task.date}
+                        priority={task.priority}
+                    />
+                ));
+
                 currentWeek.push(
                     <View
                         style={isToday ? styles.today : styles.day}
@@ -219,6 +253,7 @@ const Calendar = () => {
                         <Text style={isToday ? styles.todayTxt : styles.dayTxt}>
                             {day}
                         </Text>
+                        {taskComps}
                     </View>
                 );
             }
@@ -256,10 +291,34 @@ const Calendar = () => {
                     : `${hour - 12}:00 PM`;
             for (let i = 0; i < 7; i++) {
                 date.setDate(diff + i);
+
+                const tasksForDay = tasks.filter((task) => {
+                    const taskDate = new Date(task.date);
+
+                    return (
+                        taskDate.getDate() === date.getDate() &&
+                        taskDate.getMonth() === curDate.getMonth() &&
+                        taskDate.getFullYear() === curDate.getFullYear() &&
+                        taskDate.getHours() === hour
+                    );
+                });
+
+                const taskComps = tasksForDay.map((task) => (
+                    <Task
+                        key={task.id}
+                        title={task.title}
+                        description={task.description}
+                        date={task.date}
+                        priority={task.priority}
+                    />
+                ));
+
                 row.push(
                     <View
                         style={styles.weekdayhour}
-                        key={`day${date.getDate()}-${hour}-${date.getDay()}`}></View>
+                        key={`day${date.getDate()}-${hour}-${date.getDay()}`}>
+                        {taskComps}
+                    </View>
                 );
             }
 
@@ -286,10 +345,34 @@ const Calendar = () => {
                     : hour === 12
                     ? "12:00 PM"
                     : `${hour - 12}:00 PM`;
+
+            const tasksForDay = tasks.filter((task) => {
+                const taskDate = new Date(task.date);
+
+                return (
+                    taskDate.getDate() === date.getDate() &&
+                    taskDate.getMonth() === curDate.getMonth() &&
+                    taskDate.getFullYear() === curDate.getFullYear() &&
+                    taskDate.getHours() === hour
+                );
+            });
+
+            const taskComps = tasksForDay.map((task) => (
+                <Task
+                    key={task.id}
+                    title={task.title}
+                    description={task.description}
+                    date={task.date}
+                    priority={task.priority}
+                />
+            ));
+
             container.push(
                 <View style={styles.weekdayContainer} key={`week${hour}`}>
                     <Text style={styles.hourTxt}>{formattedHour}</Text>
-                    <View style={styles.dayContainer}></View>
+                    <View style={styles.dayContainer}>
+                        {taskComps}
+                    </View>
                 </View>
             );
         }
