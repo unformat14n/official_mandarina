@@ -3,18 +3,17 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import colors from "../styles/colors";
 import { useTheme } from "../contexts/ThemeContext";
 
-function Task({ id, title, status, priority, date, hour }) {
+function Task({ id, title, status, priority, date }) {
     let priorityStyle =
         priority === "High" ? "highp" : priority === "Medium" ? "medp" : "lowp";
     const { theme, palette } = useTheme();
     const styles = getStyles(priorityStyle, theme, palette);
 
+    const hour = date.split("T")[1].split(":")[0] + ":" + date.split("T")[1].split(":")[1]; 
+
     return (
         <View style={styles.taskContainer}>
             <Text style={[styles.taskTitle, styles.txt]}>{title}</Text>
-            <Text style={[styles.txt]}>
-                {new Date(date).toISOString().split("T")[0]}
-            </Text>
             <Text style={[styles.taskHour, styles.txt]}>{hour}</Text>
         </View>
     );
@@ -56,8 +55,8 @@ const getStyles = (priority, theme, palette) =>
             borderWidth: 2,
             borderRadius: 5,
             padding: 2,
-            marginBlock: 10,
-            with: "auto",
+            marginBlock: 5,
+            width: "100%",
         },
         txt: {
             color: colors[priority],
